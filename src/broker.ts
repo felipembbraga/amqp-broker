@@ -267,7 +267,7 @@ export class Broker {
     await this.connect();
     try {
       await Promise.all(
-        this._config.exchanges.map((ex: any) => {
+        this._exchanges.map((ex: any) => {
           if (this._channel) {
             this._channel.assertExchange(ex.name, ex.type, ex.options);
           }
