@@ -116,6 +116,11 @@ export declare class Broker {
      * @param _config Configurações do Broker
      */
     constructor(_config: Config);
+    /**
+     * Set a sleep time
+     *
+     * @param ms miliseconds
+     */
     sleep(ms: number): Promise<unknown>;
     /**
      * noAck
@@ -125,28 +130,68 @@ export declare class Broker {
     */
     noAck: boolean;
     /**
-     * Conexão
+     * Connection
      */
     readonly conn: any;
     /**
-     * Canal
+     * Channel
      */
     readonly channel: Channel | undefined;
     /**
-     * Conecta com o rabbitmq
+     * Connect with RabbitMQ
      */
     private connect;
     /**
-     * Fecha a conexão
+     * Close the channel connection connection
      */
     close(): Promise<void>;
+    /**
+     * Initialize the Broker service
+     */
     init(): Promise<void>;
+    /**
+     * Add the consumer into the broker
+     *
+     * @param queue queue name
+     * @param cb Consumer function
+     */
     addConsume(queue: string, cb: (msg: ConsumeMessage) => Promise<Object>): void;
+    /**
+     * Assert a queue and bind to a exchange
+     *
+     * @param q Queue options
+     */
     private createQueue;
     private getMessageToSend;
+    /**
+     * Create a consumer to receive response from a worker
+     *
+     * @param replyTo queue to reply
+     * @param exchange Exchange to queue
+     */
     private consumeResponse;
+    /**
+     * publish a message to a exchange key pattern
+     *
+     * @param publishOptions options to publish
+     */
     publishMessage(publishOptions: PublishOptions): Promise<string | undefined>;
+    /**
+     * Publish a message
+     * @param exchange Exchange name
+     * @param key key
+     * @param msg Data to send
+     * @param options Exchange publish options
+     */
     private publish;
+    /**
+     * Send a message to a especific queue
+     *
+     * @param sendOptions Options to send
+     */
     sendMessage(sendOptions: SendToQueueOptions): Promise<string | undefined>;
+    /**
+     * send a message to a queue
+     */
     private sendToQueue;
 }
