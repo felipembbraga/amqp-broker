@@ -2,7 +2,7 @@
   "name": "amqp-broker-typescript",
   "version": "1.0.0",
   "description": "Broker for AMQP Lib",
-  "main": "index.js",
+  "main": "lib/index.js",
   "repository": "git@github.com:felipemendesbraga/amqp-broker.git",
   "bugs": {
     "url": "https://github.com/felipemendesbraga/amqp-broker/issues"
@@ -11,7 +11,7 @@
   "author": "Felipe Mendes Braga <felipe.mendes.braga@gmail.com>",
   "license": "MIT",
   "private": false,
-  "types": "lib/index.d.ts",
+  "types": "src/index.ts",
   "files": [
     "lib/**/*"
   ],
