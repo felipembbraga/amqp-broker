@@ -1,5 +1,6 @@
 import { Broker, Config, logger } from "../src/index";
 import { ConsumeMessage } from "amqplib";
+import { doesNotReject } from "assert";
 
 const config: Config = {
   connection: {
@@ -10,40 +11,54 @@ const config: Config = {
   },
   exchanges: [
     {
-      name: "teste",
+      name: "exchange",
       type: "direct",
       options: {}
     }
   ],
   queues: [
     {
-      name: "test-queue",
-      exchange: "teste",
-      key: "teste.test-queue",
+      name: "plusOne",
+      exchange: "exchange",
+      key: "exchange.plusOne",
       options: {}
     }
   ]
 };
 
 async function plusOne(msg: ConsumeMessage) {
-    logger.info("plusOne!!!!!");
-  let data: any = JSON.parse(msg.content.toString());
-  console.log(data);
-  return data.num + 1;
+  return parseInt(msg.content.toString()) + 1;
 }
 
 const broker = new Broker(config);
 
-test("broker send", async function() {
-  await broker.addConsume("test-queue", plusOne);
-  await broker.init();
-  let response = await broker.publishMessage({
-    msg: { num: 1 },
-    exchange: "teste",
-    key: "teste.test-queue",
-    rpc: true,
-    options: {}
-  });
-  console.log(response);
-  await broker.close();
+test("broker send", function(done) {
+  // await broker.addConsume("test-queue", plusOne);
+  // await broker.init();
+  // let response = await broker.publishMessage({
+  //   msg: { num: 1 },
+  //   exchange: "teste",
+  //   key: "teste.test-queue",
+  //   rpc: true,
+  //   options: {}
+  // });
+  // console.log(response);
+  // await broker.close();
+  broker.addConsume("plusOne", plusOne);
+
+  broker
+    .init()
+    .then(() =>
+      broker.publishMessage({
+        msg: "1",
+        exchange: "exchange",
+        key: "exchange.plusOne",
+        rpc: true,
+        options: {}
+      })
+    )
+    .then(response => {
+      console.log(response);
+      done();
+    });
 }, 200000000);

@@ -159,7 +159,7 @@ export class Broker {
 
   /**
    * Set a sleep time
-   * 
+   *
    * @param ms miliseconds
    */
   public sleep(ms: number) {
@@ -261,11 +261,11 @@ export class Broker {
       logger.error("Error trying to connection to " + url);
       logger.error(e.message);
       this._connection = null;
-      
+
       // Try to reconnect
       setTimeout(this.connect, 1000);
     }
-  }
+  };
 
   /**
    * Close the channel connection connection
@@ -282,7 +282,6 @@ export class Broker {
    * Initialize the Broker service
    */
   public async init() {
-
     // Connect to RabbitMQ
     await this.connect();
 
@@ -307,17 +306,19 @@ export class Broker {
     }
 
     logger.info("Initialization is done");
-    return
+    return;
   }
 
   /**
    * Add the consumer into the broker
-   * 
+   *
    * @param queue queue name
    * @param cb Consumer function
    */
-  public addConsume(queue: string, cb: (msg: ConsumeMessage) => Promise<Object>) {
-
+  public addConsume(
+    queue: string,
+    cb: (msg: ConsumeMessage) => Promise<Object>
+  ) {
     this._consumes.set(queue, async (msg: ConsumeMessage) => {
       logger.info("Running consumer " + queue);
       // Call the consumer function
@@ -341,7 +342,7 @@ export class Broker {
 
   /**
    * Assert a queue and bind to a exchange
-   * 
+   *
    * @param q Queue options
    */
   private createQueue = async (q: Queue) => {
@@ -359,9 +360,13 @@ export class Broker {
       await this._channel.bindQueue(queue.queue, q.exchange, key);
     }
 
-    console.log(this._consumes)
-    console.log(queue.queue)
-    await this._channel.consume(queue.queue, this._consumes.get(queue.queue), q.options);
+    console.log(this._consumes);
+    console.log(queue.queue);
+    await this._channel.consume(
+      queue.queue,
+      this._consumes.get(queue.queue),
+      q.options
+    );
     logger.info(`initQueue: consume - ${q.key} is ok`);
   };
 
@@ -371,13 +376,13 @@ export class Broker {
 
   /**
    * Create a consumer to receive response from a worker
-   * 
+   *
    * @param replyTo queue to reply
    * @param exchange Exchange to queue
    */
   private async consumeResponse(
     replyTo: string,
-    exchange? : string
+    exchange?: string
   ): Promise<string> {
     if (!this._channel) {
       throw new Error("channel not initialized");
@@ -389,7 +394,7 @@ export class Broker {
     });
 
     // bind the queue with exchange
-    if(exchange) {
+    if (exchange) {
       await this._channel.bindQueue(q.queue, exchange, replyTo);
     }
 
@@ -408,19 +413,19 @@ export class Broker {
 
   /**
    * publish a message to a exchange key pattern
-   * 
+   *
    * @param publishOptions options to publish
    */
   public async publishMessage(publishOptions: PublishOptions) {
     let response;
-    let replyTo = ""
+    let replyTo = "";
     if (publishOptions.rpc) {
       replyTo = uuidv4();
       publishOptions.options.replyTo = replyTo;
     }
     console.log("publishing...");
     console.log(publishOptions.msg);
-    
+
     // publish the message
     this.publish(
       publishOptions.exchange,
@@ -430,10 +435,10 @@ export class Broker {
     );
 
     // if rpc is setted, wait from the response to return
-    if(publishOptions.rpc) {
+    if (publishOptions.rpc) {
       response = this.consumeResponse(replyTo, publishOptions.exchange);
     }
-    
+
     return await response;
   }
 
@@ -466,10 +471,10 @@ export class Broker {
 
   /**
    * Send a message to a especific queue
-   * 
+   *
    * @param sendOptions Options to send
    */
-  public async sendMessage(sendOptions : SendToQueueOptions) {
+  public async sendMessage(sendOptions: SendToQueueOptions) {
     let response;
 
     // if rpc is setted, wait from the response to return
@@ -477,11 +482,7 @@ export class Broker {
       const replyTo = uuidv4();
       response = this.consumeResponse(replyTo);
     }
-    this.sendToQueue(
-      sendOptions.queue,
-      sendOptions.msg,
-      sendOptions.options
-    );
+    this.sendToQueue(sendOptions.queue, sendOptions.msg, sendOptions.options);
 
     return await response;
   }

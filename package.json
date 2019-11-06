@@ -1,5 +1,5 @@
 {
-  "name": "amqp-broker-typescript",
+  "name": "amqp-broker-lib",
   "version": "1.0.0",
   "description": "Broker for AMQP Lib",
   "main": "lib/index.js",
@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "jest",
+    "test": "jest --detectOpenHandles",
     "prepare": "npm run build"
   },
   "dependencies": {
