@@ -13,7 +13,8 @@
   "private": false,
   "types": "src/index.ts",
   "files": [
-    "lib/**/*"
+    "lib/**/*",
+    "src/**/*"
   ],
   "scripts": {
     "build": "tsc",
