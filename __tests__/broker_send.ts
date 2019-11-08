@@ -1,4 +1,4 @@
-import { Broker, Config, logger } from "../src/index";
+import { Broker, Config } from "../src/index";
 import { ConsumeMessage } from "amqplib";
 import { doesNotReject } from "assert";
 
