@@ -1,6 +1,5 @@
 /// <reference types="node" />
 import { Options, Channel, ConsumeMessage } from "amqplib";
-export declare const logger: any;
 /**
  * Opções para conexão com o servidor rabbitmq
  */
