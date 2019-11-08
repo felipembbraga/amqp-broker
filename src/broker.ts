@@ -422,6 +422,7 @@ export class Broker {
     if (publishOptions.rpc) {
       replyTo = uuidv4();
       publishOptions.options.replyTo = replyTo;
+      response = this.consumeResponse(replyTo, publishOptions.exchange);
     }
     console.log("publishing...");
     console.log(publishOptions.msg);
@@ -434,10 +435,6 @@ export class Broker {
       publishOptions.options
     );
 
-    // if rpc is setted, wait from the response to return
-    if (publishOptions.rpc) {
-      response = this.consumeResponse(replyTo, publishOptions.exchange);
-    }
 
     return await response;
   }
