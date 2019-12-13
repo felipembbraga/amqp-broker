@@ -1,5 +1,7 @@
 # AMQP-Broker
 
+[![npm version](https://img.shields.io/npm/v/amqp-broker-lib.svg?style=flat-square)](https://www.npmjs.org/package/amqp-broker-lib)
+
 Node.js broker lib for AMQP using [amqplib](https://github.com/squaremo/amqp.node).
 
 ## Installation

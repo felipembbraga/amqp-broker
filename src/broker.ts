@@ -434,8 +434,7 @@ export class Broker {
       publishOptions.msg,
       publishOptions.options
     );
-
-
+    
     return await response;
   }
 
