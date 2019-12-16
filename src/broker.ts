@@ -406,7 +406,8 @@ export class Broker {
       await this.sleep(100);
       return this.consumeResponse(replyTo, exchange);
     }
-
+  
+    await this._channel.cancel(q.queue);
     // return the string value
     return response.content.toString();
   }
