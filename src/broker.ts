@@ -266,12 +266,12 @@ export class Broker {
           await this._channel.prefetch(1);
         }
       } catch (e) {
-        console.error("Error trying to connection to " + url);
+        console.error("Error trying to connect to " + url);
         console.error(e.message);
         this._connection = undefined;
 
         // Try to reconnect
-        setTimeout(this.connect, 1000);
+        return setTimeout(this.connect, 1000);
       }
     }
     return this._connection;
