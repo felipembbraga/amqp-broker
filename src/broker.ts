@@ -245,7 +245,7 @@ export class Broker {
           } else {
             console.error("reconnecting ..");
           }
-          setTimeout(this.connect, 1000);
+          setTimeout(this.init, 1000);
         });
 
         this._connection.on("close", () => {
@@ -254,7 +254,7 @@ export class Broker {
           console.error("reconnecting ..");
 
           // Try to reconnect
-          setTimeout(this.connect, 1000);
+          setTimeout(this.init, 1000);
         });
         console.info(
           `[connect] connected to ${this._config.connection.host}:${this._config.connection.port} is ok!`
