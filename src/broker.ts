@@ -202,7 +202,7 @@ export class Broker {
   /**
    * Connect with RabbitMQ
    */
-  private connect = async () => {
+  private connect = async (): Promise<any> => {
     // Verify if is already connected
     if (!this._connection) {
       const port: number = this._config.connection.port
@@ -271,7 +271,8 @@ export class Broker {
         this._connection = undefined;
 
         // Try to reconnect
-        return setTimeout(this.connect, 1000);
+        await this.sleep(1000);
+        return await this.connect();
       }
     }
     return this._connection;
