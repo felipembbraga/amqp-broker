@@ -1,6 +1,6 @@
 {
   "name": "amqp-broker-lib",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Broker for AMQP Lib",
   "main": "lib/index.js",
   "repository": "git@github.com:felipemendesbraga/amqp-broker.git",
