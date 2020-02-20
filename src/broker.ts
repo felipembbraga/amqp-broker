@@ -60,8 +60,8 @@ export interface Logging {
 export interface Config {
   connection: Connection;
   logging?: Logging;
-  exchanges: Exchange[];
-  queues: Queue[];
+  exchanges?: Exchange[];
+  queues?: Queue[];
 }
 
 /**
@@ -158,8 +158,8 @@ export class Broker {
    */
   public constructor(_config: Config) {
     this._config = Object.assign({}, defaultConfig, _config);
-    this._exchanges = this._config.exchanges;
-    this._queues = this._config.queues;
+    this._exchanges = this._config.exchanges || [];
+    this._queues = this._config.queues || [];
   }
 
   /**
@@ -294,7 +294,7 @@ export class Broker {
   /**
    * Initialize the Broker service
    */
-  public async init() {
+  public init = async () => {
     // Connect to RabbitMQ
     await this.connect();
     // Assert all exchanges
