@@ -1,5 +1,12 @@
-import {v4 as uuidv4} from "uuid";
-import { connect, Options, Channel, ConsumeMessage } from "amqplib";
+import {
+  Connection as AmqpConnection,
+  Channel,
+  ConsumeMessage,
+  Options,
+  connect
+} from "amqplib";
+
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Opções para conexão com o servidor rabbitmq
@@ -13,6 +20,7 @@ export interface Connection {
   certificate?: Buffer;
   timeout?: Number;
   name?: string;
+  vhost?: string;
 }
 
 /**
@@ -31,7 +39,7 @@ export interface Queue {
   name: string;
   exchange?: string;
   key?: string;
-  options: any;
+  options?: any;
 }
 
 /**
@@ -121,15 +129,15 @@ export type PublishOptions = {
   exchange: string;
   key: string;
   msg: string | Object;
-  options: Options.Publish;
-  rpc: boolean;
+  options?: Options.Publish;
+  rpc?: boolean;
 };
 
 export type SendToQueueOptions = {
   queue: string;
   msg: string | Object;
-  options: Options.Publish;
-  rpc: boolean;
+  options?: Options.Publish;
+  rpc?: boolean;
 };
 
 /**
@@ -140,7 +148,7 @@ export class Broker {
   private _queues: Queue[] = []; // Queues do Broker
   private _exchanges: Exchange[] = []; // Exchanges do Broker
   private _noAck: boolean = false; // Acknowledgement (confirmação)
-  private _connection: any = null; // Conexão com o Rabbitmq
+  private _connection?: AmqpConnection; // Conexão com o Rabbitmq
   private _channel?: Channel; // Canal criado para o Rabbitmq
   private _consumes = new Map<string, any>(); // Funções que consomem as mensagens
 
@@ -196,75 +204,75 @@ export class Broker {
    */
   private connect = async () => {
     // Verify if is already connected
-    if (this._connection !== null) {
-      console.info("[connect] your broker is already connected.");
-      return;
-    }
+    if (!this._connection) {
+      const port: number = this._config.connection.port
+        ? parseInt(this._config.connection.port)
+        : 5672;
 
-    // Connection options
-    const port: number = this._config.connection.port
-      ? parseInt(this._config.connection.port)
-      : 5672;
+      const url: Options.Connect = {
+        protocol: this._config.connection.protocol,
+        hostname: this._config.connection.host,
+        port: port,
+        username: this._config.connection.user,
+        password: this._config.connection.pass
+      };
 
-    const url: Options.Connect = {
-      protocol: this._config.connection.protocol,
-      hostname: this._config.connection.host,
-      port: port,
-      username: this._config.connection.user,
-      password: this._config.connection.pass
-    };
+      // Verify if have a SSL certificate
+      const options: any =
+        this._config.connection.protocol == "amqps"
+          ? {
+              ca: [this._config.connection.certificate]
+            }
+          : {};
 
-    // Verify if have a SSL certificate
-    const options: any =
-      this._config.connection.protocol == "amqps"
-        ? {
-            ca: [this._config.connection.certificate]
+      // Try connect
+      try {
+        console.info(
+          `[connect] going to connect to ${this._config.connection.host}:${this._config.connection.port}`
+        );
+
+        this._connection = await connect(url, options);
+
+        // Connection events
+        this._connection.on("error", (err: any) => {
+          this._connection = undefined;
+          if (err.message !== "connection closing") {
+            console.error("Conn error: ", err.message);
+          } else {
+            console.error("reconnecting ..");
           }
-        : {};
+          setTimeout(this.connect, 1000);
+        });
 
-    // Try connect
-    try {
-      console.info(
-        `[connect] going to connect to ${this._config.connection.host}:${this._config.connection.port}`
-      );
+        this._connection.on("close", () => {
+          this._connection = undefined;
+          console.error("Connection closed!");
+          console.error("reconnecting ..");
 
-      this._connection = await connect(
-        url,
-        options
-      );
-      // Save the channel
-      this._channel = await this._connection.createChannel();
-      if(this._channel) {
-        await this._channel.prefetch(1);
-      }
-
-      // Connection events
-      this._connection.on("error", (err: any) => {
-        this._connection = null;
-        if (err.message !== "connection closing") {
-          console.error("Conn error: ", err.message);
+          // Try to reconnect
+          setTimeout(this.connect, 1000);
+        });
+        console.info(
+          `[connect] connected to ${this._config.connection.host}:${this._config.connection.port} is ok!`
+        );
+        // Save the channel
+        this._channel = await this._connection.createChannel();
+        console.log(this._channel);
+        if (this._channel) {
+          await this._channel.prefetch(1);
         }
-      });
-
-      this._connection.on("close", () => {
-        this._connection = null;
-        console.error("Connection closed!");
-        console.error("reconnecting ..");
+      } catch (e) {
+        console.error("Error trying to connection to " + url);
+        console.error(e.message);
+        this._connection = undefined;
 
         // Try to reconnect
         setTimeout(this.connect, 1000);
-      });
-      console.info(
-        `[connect] connected to ${this._config.connection.host}:${this._config.connection.port} is ok!`
-      );
-    } catch (e) {
-      console.error("Error trying to connection to " + url);
-      console.error(e.message);
-      this._connection = null;
-
-      // Try to reconnect
-      setTimeout(this.connect, 1000);
+      }
     }
+    return this._connection;
+
+    // Connection options
   };
 
   /**
@@ -284,7 +292,6 @@ export class Broker {
   public async init() {
     // Connect to RabbitMQ
     await this.connect();
-
     // Assert all exchanges
     try {
       await Promise.all(
@@ -406,7 +413,7 @@ export class Broker {
       await this.sleep(100);
       return this.consumeResponse(replyTo, exchange);
     }
-  
+
     await this._channel.cancel(q.queue);
     // return the string value
     return response.content.toString();
@@ -420,6 +427,9 @@ export class Broker {
   public async publishMessage(publishOptions: PublishOptions) {
     let response;
     let replyTo = "";
+    if (!publishOptions.options) {
+      publishOptions.options = {};
+    }
     if (publishOptions.rpc) {
       replyTo = uuidv4();
       publishOptions.options.replyTo = replyTo;
@@ -435,7 +445,7 @@ export class Broker {
       publishOptions.msg,
       publishOptions.options
     );
-    
+
     return await response;
   }
 
@@ -450,7 +460,7 @@ export class Broker {
     exchange: string,
     key: string,
     msg: string | Object,
-    options: Options.Publish
+    options?: Options.Publish
   ) {
     if (!this._channel) {
       throw new Error("channel not initialized");

@@ -1,4 +1,5 @@
 import { Broker, Config } from "../src/index";
+
 import { ConsumeMessage } from "amqplib";
 import { doesNotReject } from "assert";
 
@@ -30,9 +31,7 @@ async function plusOne(msg: ConsumeMessage) {
   return parseInt(msg.content.toString()) + 1;
 }
 
-const broker = new Broker(config);
-
-test("broker send", function(done) {
+test("broker send", async function(done) {
   // await broker.addConsume("test-queue", plusOne);
   // await broker.init();
   // let response = await broker.publishMessage({
@@ -44,21 +43,17 @@ test("broker send", function(done) {
   // });
   // console.log(response);
   // await broker.close();
-  broker.addConsume("plusOne", plusOne);
 
-  broker
-    .init()
-    .then(() =>
-      broker.publishMessage({
-        msg: "1",
-        exchange: "exchange",
-        key: "exchange.plusOne",
-        rpc: true,
-        options: {}
-      })
-    )
-    .then(response => {
-      console.log(response);
-      done();
-    });
+  const broker = new Broker(config);
+  broker.addConsume("plusOne", plusOne);
+  console.log("initializating broker...");
+  await broker.init();
+  console.log("sending message");
+  const response = await broker.publishMessage({
+    msg: "1",
+    exchange: "exchange",
+    key: "exchange.plusOne",
+    rpc: true
+  });
+  console.log(response);
 }, 200000000);
