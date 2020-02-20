@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { Options, Channel, ConsumeMessage } from "amqplib";
+import { Connection as AmqpConnection, Channel, ConsumeMessage, Options } from "amqplib";
 /**
  * Opções para conexão com o servidor rabbitmq
  */
@@ -12,6 +12,7 @@ export interface Connection {
     certificate?: Buffer;
     timeout?: Number;
     name?: string;
+    vhost?: string;
 }
 /**
  * estrutura do exchange
@@ -28,7 +29,7 @@ export interface Queue {
     name: string;
     exchange?: string;
     key?: string;
-    options: any;
+    options?: any;
 }
 /**
  * Estrutura de Logging de um broker
@@ -90,14 +91,14 @@ export declare type PublishOptions = {
     exchange: string;
     key: string;
     msg: string | Object;
-    options: Options.Publish;
-    rpc: boolean;
+    options?: Options.Publish;
+    rpc?: boolean;
 };
 export declare type SendToQueueOptions = {
     queue: string;
     msg: string | Object;
-    options: Options.Publish;
-    rpc: boolean;
+    options?: Options.Publish;
+    rpc?: boolean;
 };
 /**
  * Classe principal do mensageiro
@@ -107,7 +108,7 @@ export declare class Broker {
     private _queues;
     private _exchanges;
     private _noAck;
-    private _connection;
+    private _connection?;
     private _channel?;
     private _consumes;
     /**
@@ -131,7 +132,7 @@ export declare class Broker {
     /**
      * Connection
      */
-    readonly conn: any;
+    readonly conn: AmqpConnection | undefined;
     /**
      * Channel
      */

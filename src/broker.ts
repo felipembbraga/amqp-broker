@@ -225,6 +225,10 @@ export class Broker {
             }
           : {};
 
+      if (this._config.connection.vhost) {
+        options.vhost = this._config.connection.vhost;
+      }
+
       // Try connect
       try {
         console.info(
