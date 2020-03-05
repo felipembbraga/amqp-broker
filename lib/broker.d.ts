@@ -114,18 +114,19 @@ export declare class Broker {
     /**
      * noAck
      */
+    get noAck(): boolean;
     /**
-    * noAck
-    */
-    noAck: boolean;
+     * noAck
+     */
+    set noAck(_noAck: boolean);
     /**
      * Connection
      */
-    readonly conn: AmqpConnection | undefined;
+    get conn(): AmqpConnection | undefined;
     /**
      * Channel
      */
-    readonly channel: Channel | undefined;
+    get channel(): Channel | undefined;
     /**
      * Connect with RabbitMQ
      */
