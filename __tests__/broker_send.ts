@@ -1,7 +1,6 @@
 import { Broker, Config } from "../src/index";
 
 import { ConsumeMessage } from "amqplib";
-import { doesNotReject } from "assert";
 
 const config: Config = {
   connection: {
@@ -31,6 +30,7 @@ async function plusOne(msg: ConsumeMessage) {
   return parseInt(msg.content.toString()) + 1;
 }
 
+
 test("broker send", async function(done) {
   // await broker.addConsume("test-queue", plusOne);
   // await broker.init();
@@ -56,4 +56,6 @@ test("broker send", async function(done) {
     rpc: true
   });
   console.log(response);
-}, 200000000);
+  await broker.close();
+  done();
+}, 5000);
