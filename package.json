@@ -3,11 +3,11 @@
   "version": "1.0.14",
   "description": "Broker for AMQP Lib",
   "main": "lib/index.js",
-  "repository": "git@github.com:felipemendesbraga/amqp-broker.git",
+  "repository": "git@github.com:felipembbraga/amqp-broker.git",
   "bugs": {
-    "url": "https://github.com/felipemendesbraga/amqp-broker/issues"
+    "url": "https://github.com/felipembbraga/amqp-broker/issues"
   },
-  "homepage": "https://github.com/felipemendesbraga/amqp-broker",
+  "homepage": "https://github.com/felipembbraga/amqp-broker",
   "author": "Felipe Mendes Braga <felipe.mendes.braga@gmail.com>",
   "license": "MIT",
   "private": false,
