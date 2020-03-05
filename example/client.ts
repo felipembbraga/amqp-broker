@@ -3,7 +3,7 @@ import { Broker, Config } from "../src/index";
 const config: Config = {
   connection: {
     protocol: "amqp",
-    name: "rabbitmq",
+    name: "rabbitmq-client",
     host: "localhost",
     port: "5672"
   }

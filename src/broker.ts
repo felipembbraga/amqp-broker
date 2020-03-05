@@ -142,9 +142,9 @@ export class Broker {
     this._config = Object.assign({}, defaultConfig, _config);
     this._exchanges = this._config.exchanges || [];
     this._queues = this._config.queues || [];
-    this._logger = factoryLogger({
+    this._logger = factoryLogger(this._config.connection.name, {
       level: "info",
-      defaultMeta: { service: this._config.connection.name || "amqp" }
+      defaultMeta: { service: this._config.connection.name || "rabbitmq" }
     });
   }
 
@@ -229,15 +229,15 @@ export class Broker {
           if (err.message !== "connection closing") {
             this._logger.error("Conn error: ", err.message);
           } else {
-            this._logger.info("reconnecting ..");
+            this._logger.info("[connect] reconnecting ..");
           }
           setTimeout(this.init, 1000);
         });
 
         this._connection.on("close", () => {
           this._connection = undefined;
-          this._logger.info("Connection closed!");
-          this._logger.info("reconnecting ..");
+          this._logger.info("[connect] Connection closed!");
+          this._logger.info("[connect] reconnecting ..");
 
           // Try to reconnect
           setTimeout(this.init, 1000);
@@ -272,7 +272,7 @@ export class Broker {
       await this._channel.close();
     }
 
-    this._logger.info("Connection is closed!");
+    this._logger.info("[connect] Connection is closed!");
   }
 
   /**
@@ -287,11 +287,10 @@ export class Broker {
         this._exchanges.map((ex: any) => {
           if (this._channel) {
             this._channel.assertExchange(ex.name, ex.type, ex.options);
+            this._logger.info(`[exchange] init exchange ${ex.name}.`);
           }
         })
       );
-
-      this._logger.info("init exchanges ok");
     } catch (e) {
       this._logger.error(e.message, e);
     }
@@ -317,22 +316,28 @@ export class Broker {
   ) {
     this._consumes.set(queue, async (msg: ConsumeMessage) => {
       console.log("teste");
-      this._logger.info(() => "Running consumer " + queue);
+      this._logger.info(`[consumer] Running consumer ${queue}`);
       // Call the consumer function
-      let response = await cb(msg);
+      try {
+        let response = await cb(msg);
 
-      // Verify if exists a replyTo queue to send back
-      if (this._channel) {
-        this._channel.ack(msg);
-        if (msg.properties.replyTo) {
-          this._logger.info("Replying to " + msg.properties.replyTo);
+        // Verify if exists a replyTo queue to send back
+        if (this._channel) {
+          this._channel.ack(msg);
+          if (msg.properties.replyTo) {
+            this._logger.info(
+              `[consumer] Replying to ${msg.properties.replyTo}.`
+            );
 
-          // Send back to broker sender
-          this._channel.sendToQueue(
-            msg.properties.replyTo,
-            Buffer.from(JSON.stringify(response))
-          );
+            // Send back to broker sender
+            this._channel.sendToQueue(
+              msg.properties.replyTo,
+              Buffer.from(JSON.stringify(response))
+            );
+          }
         }
+      } catch (error) {
+        this._logger.error(error);
       }
     });
   }
@@ -344,13 +349,15 @@ export class Broker {
    */
   private createQueue = async (q: Queue) => {
     if (!this._channel) {
-      throw new Error("channel not initialized");
+      this._logger.error("[queue] channel not initialized");
+      throw new Error("Channel not initialized.");
     }
     if (!this._consumes.get(q.name)) {
+      this._logger.error(`[queue] Consumer to queue ${q.name} not defined.`);
       throw new Error(`Consumer to queue ${q.name} not defined.`);
     }
 
-    this._logger.info("Creating queue " + q.name);
+    this._logger.info("[queue] Creating queue " + q.name);
     let queue = await this._channel.assertQueue(q.name, q.options);
     if (q.exchange) {
       const key: string = q.key || q.name;
@@ -362,7 +369,7 @@ export class Broker {
       this._consumes.get(queue.queue),
       q.options
     );
-    this._logger.info(`initQueue: consume - ${q.key} is ok`);
+    this._logger.info(`[queue] consume - ${q.key} is ok`);
   };
 
   private getMessageToSend(msg: string | Object) {
@@ -380,7 +387,8 @@ export class Broker {
     exchange?: string
   ): Promise<string> {
     if (!this._channel) {
-      throw new Error("channel not initialized");
+      this._logger.error("Channel not initialized.");
+      throw new Error("Channel not initialized.");
     }
     // create a queue with replyTo name
     const q = await this._channel.assertQueue(replyTo, {
@@ -423,7 +431,7 @@ export class Broker {
       publishOptions.options.replyTo = replyTo;
       response = this.consumeResponse(replyTo, publishOptions.exchange);
     }
-    this._logger.info(() => `Publishing to ${publishOptions.key}...`);
+    this._logger.info(`[publish] Publishing to ${publishOptions.key}...`);
 
     // publish the message
     this.publish(
@@ -450,7 +458,7 @@ export class Broker {
     options?: Options.Publish
   ) {
     if (!this._channel) {
-      throw new Error("channel not initialized");
+      throw new Error("Channel not initialized.");
     }
 
     let msgToSend = this.getMessageToSend(msg);
@@ -490,7 +498,7 @@ export class Broker {
     options?: Options.Publish
   ) => {
     if (!this._channel) {
-      throw new Error("channel not initialized");
+      throw new Error("Channel not initialized.");
     }
 
     let msgToSend = this.getMessageToSend(content);
