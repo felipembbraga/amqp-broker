@@ -6,6 +6,8 @@ import {
   connect
 } from "amqplib";
 
+import { Logger } from "winston";
+import { factoryLogger } from "./logger";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -43,23 +45,10 @@ export interface Queue {
 }
 
 /**
- * Estrutura de Logging de um broker
- */
-export interface Logging {
-  adapters?: {
-    stdOut?: {
-      level?: Number;
-      bailIfDebug?: Boolean;
-    };
-  };
-}
-
-/**
  * Estrutura de configuração do Broker
  */
 export interface Config {
   connection: Connection;
-  logging?: Logging;
   exchanges?: Exchange[];
   queues?: Queue[];
 }
@@ -79,15 +68,7 @@ export const defaultConfig: Config = {
     name: "rabbitmq"
   },
   exchanges: [],
-  queues: [],
-  logging: {
-    adapters: {
-      stdOut: {
-        level: 3,
-        bailIfDebug: true
-      }
-    }
-  }
+  queues: []
 };
 
 /**
@@ -151,6 +132,7 @@ export class Broker {
   private _connection?: AmqpConnection; // Conexão com o Rabbitmq
   private _channel?: Channel; // Canal criado para o Rabbitmq
   private _consumes = new Map<string, any>(); // Funções que consomem as mensagens
+  private _logger: Logger;
 
   /**
    * Construtor
@@ -160,6 +142,10 @@ export class Broker {
     this._config = Object.assign({}, defaultConfig, _config);
     this._exchanges = this._config.exchanges || [];
     this._queues = this._config.queues || [];
+    this._logger = factoryLogger({
+      level: "info",
+      defaultMeta: { service: this._config.connection.name || "amqp" }
+    });
   }
 
   /**
@@ -231,7 +217,7 @@ export class Broker {
 
       // Try connect
       try {
-        console.info(
+        this._logger.info(
           `[connect] going to connect to ${this._config.connection.host}:${this._config.connection.port}`
         );
 
@@ -241,33 +227,31 @@ export class Broker {
         this._connection.on("error", (err: any) => {
           this._connection = undefined;
           if (err.message !== "connection closing") {
-            console.error("Conn error: ", err.message);
+            this._logger.error("Conn error: ", err.message);
           } else {
-            console.error("reconnecting ..");
+            this._logger.info("reconnecting ..");
           }
           setTimeout(this.init, 1000);
         });
 
         this._connection.on("close", () => {
           this._connection = undefined;
-          console.error("Connection closed!");
-          console.error("reconnecting ..");
+          this._logger.info("Connection closed!");
+          this._logger.info("reconnecting ..");
 
           // Try to reconnect
           setTimeout(this.init, 1000);
         });
-        console.info(
+        this._logger.info(
           `[connect] connected to ${this._config.connection.host}:${this._config.connection.port} is ok!`
         );
         // Save the channel
         this._channel = await this._connection.createChannel();
-        console.log(this._channel);
         if (this._channel) {
           await this._channel.prefetch(1);
         }
       } catch (e) {
-        console.error("Error trying to connect to " + url);
-        console.error(e.message);
+        this._logger.error("Error trying to connect to " + url, e);
         this._connection = undefined;
 
         // Try to reconnect
@@ -288,7 +272,7 @@ export class Broker {
       await this._channel.close();
     }
 
-    console.info("Connection is closed!");
+    this._logger.info("Connection is closed!");
   }
 
   /**
@@ -307,9 +291,9 @@ export class Broker {
         })
       );
 
-      console.info("init exchanges ok");
+      this._logger.info("init exchanges ok");
     } catch (e) {
-      console.info(e);
+      this._logger.error(e.message, e);
     }
 
     // assert and bind all queues
@@ -317,9 +301,9 @@ export class Broker {
       await this.createQueue(v);
     }
 
-    console.info("Initialization is done");
+    this._logger.info("Initialization is done");
     return;
-  }
+  };
 
   /**
    * Add the consumer into the broker
@@ -332,7 +316,8 @@ export class Broker {
     cb: (msg: ConsumeMessage) => Promise<Object>
   ) {
     this._consumes.set(queue, async (msg: ConsumeMessage) => {
-      console.info("Running consumer " + queue);
+      console.log("teste");
+      this._logger.info(() => "Running consumer " + queue);
       // Call the consumer function
       let response = await cb(msg);
 
@@ -340,7 +325,7 @@ export class Broker {
       if (this._channel) {
         this._channel.ack(msg);
         if (msg.properties.replyTo) {
-          console.info("Replying to " + msg.properties.replyTo);
+          this._logger.info("Replying to " + msg.properties.replyTo);
 
           // Send back to broker sender
           this._channel.sendToQueue(
@@ -365,21 +350,19 @@ export class Broker {
       throw new Error(`Consumer to queue ${q.name} not defined.`);
     }
 
-    console.info("Creating queue " + q.name);
+    this._logger.info("Creating queue " + q.name);
     let queue = await this._channel.assertQueue(q.name, q.options);
     if (q.exchange) {
       const key: string = q.key || q.name;
       await this._channel.bindQueue(queue.queue, q.exchange, key);
     }
 
-    console.log(this._consumes);
-    console.log(queue.queue);
     await this._channel.consume(
       queue.queue,
       this._consumes.get(queue.queue),
       q.options
     );
-    console.info(`initQueue: consume - ${q.key} is ok`);
+    this._logger.info(`initQueue: consume - ${q.key} is ok`);
   };
 
   private getMessageToSend(msg: string | Object) {
@@ -440,8 +423,7 @@ export class Broker {
       publishOptions.options.replyTo = replyTo;
       response = this.consumeResponse(replyTo, publishOptions.exchange);
     }
-    console.log("publishing...");
-    console.log(publishOptions.msg);
+    this._logger.info(() => `Publishing to ${publishOptions.key}...`);
 
     // publish the message
     this.publish(

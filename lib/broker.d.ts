@@ -32,24 +32,12 @@ export interface Queue {
     options?: any;
 }
 /**
- * Estrutura de Logging de um broker
- */
-export interface Logging {
-    adapters?: {
-        stdOut?: {
-            level?: Number;
-            bailIfDebug?: Boolean;
-        };
-    };
-}
-/**
  * Estrutura de configuração do Broker
  */
 export interface Config {
     connection: Connection;
-    logging?: Logging;
-    exchanges: Exchange[];
-    queues: Queue[];
+    exchanges?: Exchange[];
+    queues?: Queue[];
 }
 /**
  * Configurações padrões
@@ -111,6 +99,7 @@ export declare class Broker {
     private _connection?;
     private _channel?;
     private _consumes;
+    private _logger;
     /**
      * Construtor
      * @param _config Configurações do Broker
@@ -148,7 +137,7 @@ export declare class Broker {
     /**
      * Initialize the Broker service
      */
-    init(): Promise<void>;
+    init: () => Promise<void>;
     /**
      * Add the consumer into the broker
      *
